@@ -1,0 +1,8 @@
+class IfTrue {
+	public static void main(String[] args) {
+		if (true)
+			println(5 + 3 * 2 - 4);		// result is 7
+		else
+			println(0);
+	}
+}

@@ -1,0 +1,17 @@
+class While {
+    public static void main(String[] args) {
+        println(new WhileStuff().method(3, 4, 5, 6, 7, 8));
+    }
+}
+
+class WhileStuff {
+    public integer method (integer a, integer b, integer c, integer d, integer e, integer f) {
+        integer count;
+        count = f;
+        while (count < 20) {
+            println(count);
+            count = count + 1;
+        }
+        return e;
+    }
+}

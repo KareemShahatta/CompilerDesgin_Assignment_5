@@ -1,0 +1,118 @@
+{
+  "tests": [
+    {
+      "name": "test_Print",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/Print.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_Println",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/Println.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_Plus",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/Plus.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_IfTrue",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/IfTrue.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_IfFalse",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/IfFalse.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_And",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/And.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_LessThan",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/LessThan.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_Not1",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/Not1.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_Not2",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/Not2.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_NewObject",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/NewObject.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_MethodCall",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/MethodCall.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_Factorial0",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/Factorial0.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_Factorial1",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/Factorial1.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_Factorial10",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/Factorial10.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_While",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/While.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_ClassLevel",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/ClassLevel.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_ArrayTest",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/ArrayTest.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_LinearSearch",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/LinearSearch.ram23 test",
+      "timeout": 2,
+      "points": 1
+    },
+    {
+      "name": "test_SideEffectTest",
+      "run": "mvn -Dtest=CodegenTestSingle#singleTest -DfileName=src/test/java/compilers/test_programs/SideEffectTest.ram23 test",
+      "timeout": 2,
+      "points": 1
+    }                                    
+  ]
+}

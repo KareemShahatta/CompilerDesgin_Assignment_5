@@ -1,0 +1,12 @@
+class NewObject {
+	public static void main(String[] args) {
+		println(new C().testing());
+	}
+}
+class C 
+{
+    public integer testing() 
+    {
+		return 123;
+    }
+}

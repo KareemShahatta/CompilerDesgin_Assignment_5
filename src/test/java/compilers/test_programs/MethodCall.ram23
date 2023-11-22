@@ -1,0 +1,13 @@
+class MethodCall {
+	public static void main(String[] args) {
+		println(new A().helper(4));
+	}
+}
+class A 
+{
+    public integer helper(integer a){
+		integer b;
+		b = 4 * a;
+		return b;
+    }
+}
