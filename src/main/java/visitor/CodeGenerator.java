@@ -6,6 +6,7 @@ import java.util.Enumeration;
 
 public class CodeGenerator extends DepthFirstVisitor {
 
+    private int labelCounter = 0;
     private java.io.PrintStream out;
     private static int nextLabelNum = 0;
     private Table symTable;  
@@ -31,8 +32,11 @@ public class CodeGenerator extends DepthFirstVisitor {
     
     // MainClass m;
     // ClassDeclList cl;
+    // NOTE I added an extra portion here to define the space label ("/n")
     public void visit(Program n) {
-        
+
+        emit(".data");
+        emit("space: .asciiz \"\\n\"");
         emit(".text");
         emit(".globl main");
         
@@ -85,17 +89,194 @@ public class CodeGenerator extends DepthFirstVisitor {
         TypeCheckVisitor.currMethod = null;
         
     }
-    
-    // TODO
-    // Exp e;
-    public void visit(Print n) {
-
-    }
-    
 
     // int i;
     public void visit(IntegerLiteral n) {
-        emit("li $v0, "+n.i+"        # load literal "+n.i+" into $v0");
-    }    
-    
+        emit("li $v0, "+n.i+"            # load literal "+n.i+" into $v0");
+    }
+
+    // Exp e;
+    public void visit(Print n)
+    {
+        n.e.accept(this); //Call IntegerLiteral and stores the value in $v0
+        emit("move $a0, $v0        # move value from $v0 to $a0");
+        emit("li $v0, 1            # load the literal 1 into $v0");
+        emit("syscall");
+    }
+
+    // Exp e;
+    public void visit(Println n)
+    {
+        n.e.accept(this); //Call IntegerLiteral and stores the value in $v0
+        emit("move $a0, $v0        # move value from $v0 to $a0");
+        emit("li $v0, 1            # load the literal 1 into $v0");
+        emit("syscall");
+
+        emit("li $v0, 4            # set type of print to be string");
+        emit("la $a0, space        # load the space label onto first argument to print");
+        emit("syscall");
+    }
+
+    // Exp e1;
+    // Exp e2;
+    public void visit(Plus n)
+    {
+        n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
+        emit("add  $sp, $sp ,4     # shift the stack one block to the right (PUSH)");
+        emit("sw $v0, ($sp)        # saves the value of $v0 in the stack");
+
+        n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
+        emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
+        emit("sub  $sp, $sp ,4     # shift the stack one block to the left (POP)");
+        emit("add $v0 $v1, $v0     # adds the value of $v0 and $v1 and saves it in $v0");
+    }
+
+    // Exp e1;
+    // Exp e2;
+    public void visit(Minus n)
+    {
+        n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
+        emit("add  $sp, $sp ,4     # shift the stack one block to the right (PUSH)");
+        emit("sw $v0, ($sp)        # saves the value of $v0 in the stack");
+
+        n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
+        emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
+        emit("sub  $sp, $sp ,4     # shift the stack one block to the left (POP)");
+        emit("sub $v0 $v1, $v0     # subtract the value of $v0 and $v1 and saves it in $v0");
+    }
+
+    // Exp e1;
+    // Exp e2;
+    public void visit(Times n)
+    {
+        n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
+        emit("add  $sp, $sp ,4     # shift the stack one block to the right (PUSH)");
+        emit("sw $v0, ($sp)        # saves the value of $v0 in the stack");
+
+        n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
+        emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
+        emit("sub  $sp, $sp ,4     # shift the stack one block to the left (POP)");
+        emit("mul $v0 $v1, $v0     # multiply the value of $v0 and $v1 and saves it in $v0");
+    }
+
+    // true 1;
+    public void visit(True n) {
+        emit("li $v0, 1            # load true value 1 into $v0");
+    }
+
+    // false 0;
+    public void visit(False n) {
+        emit("li $v0, 0            # load false value 0 into $v0");
+    }
+
+    // Exp e;
+    // Stm s1;
+    // Stm s2;
+    public void visit(If n)
+    {
+        int value = ++labelCounter;
+
+        n.e.accept(this); //Call IntegerLiteral and stores the value in $v0
+        emit("blez $v0 If_False_" + value + "  # Check if $v0 is false then execute false block"); //(BLEZ) Branch Less or Equal Zero
+
+        n.s1.accept(this); //writes the true block
+        emit("jal If_Done_" + value + "           # Jumps to label If_Done");
+
+        emitLabel("If_False_" + value);
+        n.s2.accept(this); //writes the false block
+
+        emitLabel("If_Done_" + value);
+    }
+
+    // Exp e1;
+    // Exp e2;
+    public void visit(And n)
+    {
+        int value = ++labelCounter;
+
+        n.e1.accept(this); // Call IntegerLiteral and stores the value in $v0
+        emit("blez $v0 And_False_" + value + "     # Check if $v0 is false then short circuit and ignore 2nd expression");
+        n.e2.accept(this); // Continue evaluation
+
+        emitLabel("And_False_"  + value);
+    }
+
+    // Exp e1;
+    // Exp e2;
+    public void visit(Or n)
+    {
+        int value = ++labelCounter;
+
+        n.e1.accept(this); // Call IntegerLiteral and stores the value in $v0
+        emit("blez $v0 Or_False_" + value + "     #Check if $v0 is false to continue to 2nd statement of or");
+        emit("jal Or_Done_" + value + "           # Jumps ot label isDone");
+
+        emitLabel("Or_False_"  + value);
+        n.e2.accept(this); // Continue evaluation
+
+        emitLabel("Or_Done_" + value);
+    }
+
+    // Exp e1;
+    // Exp e2;
+    public void visit(LessThan n)
+    {
+        int value = ++labelCounter;
+
+        n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
+        emit("add  $sp, $sp ,4      # shift the stack one block to the right (PUSH)");
+        emit("sw $v0, ($sp)         # saves the value of $v0 in the stack");
+
+        n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
+        emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
+        emit("sub  $sp, $sp ,4     # shift the stack one block to the left (POP)");
+
+        emit("blt $v1 $v0 LessThan_True_" + value + "   #Check if $v1 is less than $v0 (e1 < e2)");
+        emit("li $v0, 0            # loads the value of $v0 to be 0 (false)");
+        emit("jal LessThan_Done_" + value + "  # Jumps to label LessThan_Done");
+
+        emitLabel("LessThan_True_"  + value);
+        emit("li $v0, 1            # loads the value of $v0 to be 1 (true)");
+
+        emitLabel("LessThan_Done_" + value);
+    }
+
+    // Exp e1;
+    // Exp e2;
+    public void visit(Equals n)
+    {
+        int value = ++labelCounter;
+
+        n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
+        emit("add  $sp, $sp ,4     # shift the stack one block to the right (PUSH)");
+        emit("sw $v0, ($sp)        # saves the value of $v0 in the stack");
+
+        n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
+        emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
+        emit("sub  $sp, $sp ,4     # shift the stack one block to the left (POP)");
+
+        emit("beq $v1 $v0 Equals_True_" + value + "   #check if $v1 is equal to $v0 (e1 = e2)");
+        emit("li $v0, 0            # loads the value of $v0 to be 0 (false)");
+        emit("jal Equals_Done_" + value + "           # jumps to label Equals_Done");
+
+        emitLabel("Equals_True_"  + value);
+        emit("li $v0, 1            # loads the value of $v0 to be 1 (true)");
+
+        emitLabel("Equals_Done_" + value);
+    }
+
+    // Exp e;
+    public void visit(Not n)
+    {
+        int value = ++labelCounter;
+        n.e.accept(this); //Call IntegerLiteral and stores the value in $v0
+        emit("blez $v0 Not_Switch_True_" + value + "   #check the value of $v1 to switch it correctly");
+        emit("li $v0, 0            # loads the value of $v0 to be 0 (false)");
+        emit("jal Not_SwitchDone_" + value + "           # jumps to label Not_SwitchDone");
+
+        emitLabel("Not_Switch_True_"  + value);
+        emit("li $v0, 1            # loads the value of $v0 to be 1 (true)");
+
+        emitLabel("Not_SwitchDone_" + value);
+    }
 }
