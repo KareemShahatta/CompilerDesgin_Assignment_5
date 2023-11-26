@@ -6,6 +6,8 @@ import java.util.Enumeration;
 
 public class CodeGenerator extends DepthFirstVisitor {
 
+    //@TODO I ADDED THIS FIELD
+    private String ramClass;
     private int labelCounter = 0;
     private java.io.PrintStream out;
     private static int nextLabelNum = 0;
@@ -122,12 +124,12 @@ public class CodeGenerator extends DepthFirstVisitor {
     public void visit(Plus n)
     {
         n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("add  $sp, $sp ,4     # shift the stack one block to the right (PUSH)");
+        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
         emit("sw $v0, ($sp)        # saves the value of $v0 in the stack");
 
         n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
         emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
-        emit("sub  $sp, $sp ,4     # shift the stack one block to the left (POP)");
+        emit("add  $sp, $sp ,4     # remove 1 word to the stack (POP)");
         emit("add $v0 $v1, $v0     # adds the value of $v0 and $v1 and saves it in $v0");
     }
 
@@ -136,12 +138,12 @@ public class CodeGenerator extends DepthFirstVisitor {
     public void visit(Minus n)
     {
         n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("add  $sp, $sp ,4     # shift the stack one block to the right (PUSH)");
+        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
         emit("sw $v0, ($sp)        # saves the value of $v0 in the stack");
 
         n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
         emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
-        emit("sub  $sp, $sp ,4     # shift the stack one block to the left (POP)");
+        emit("add  $sp, $sp ,4     # remove 1 word to the stack (POP)");
         emit("sub $v0 $v1, $v0     # subtract the value of $v0 and $v1 and saves it in $v0");
     }
 
@@ -224,12 +226,12 @@ public class CodeGenerator extends DepthFirstVisitor {
         int value = ++labelCounter;
 
         n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("add  $sp, $sp ,4      # shift the stack one block to the right (PUSH)");
+        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
         emit("sw $v0, ($sp)         # saves the value of $v0 in the stack");
 
         n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
         emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
-        emit("sub  $sp, $sp ,4     # shift the stack one block to the left (POP)");
+        emit("add  $sp, $sp ,4     # remove 1 word to the stack (POP)");
 
         emit("blt $v1 $v0 LessThan_True_" + value + "   #Check if $v1 is less than $v0 (e1 < e2)");
         emit("li $v0, 0            # loads the value of $v0 to be 0 (false)");
@@ -248,12 +250,12 @@ public class CodeGenerator extends DepthFirstVisitor {
         int value = ++labelCounter;
 
         n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("add  $sp, $sp ,4     # shift the stack one block to the right (PUSH)");
+        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
         emit("sw $v0, ($sp)        # saves the value of $v0 in the stack");
 
         n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
         emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
-        emit("sub  $sp, $sp ,4     # shift the stack one block to the left (POP)");
+        emit("add  $sp, $sp ,4     # remove 1 word to the stack (POP)");
 
         emit("beq $v1 $v0 Equals_True_" + value + "   #check if $v1 is equal to $v0 (e1 = e2)");
         emit("li $v0, 0            # loads the value of $v0 to be 0 (false)");
@@ -279,4 +281,90 @@ public class CodeGenerator extends DepthFirstVisitor {
 
         emitLabel("Not_SwitchDone_" + value);
     }
+
+    // Exp e;
+    // Identifier i;
+    // ExpList el;
+    public void visit(Call n)
+    {
+       /* emitComment("Preparing to call method " +n.i.toString());
+
+        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
+        emit("sw $a3, ($sp)        # saves the value of $a3 in the stack");
+
+        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
+        emit("sw $a2, ($sp)        # saves the value of $a2 in the stack");
+
+        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
+        emit("sw $a1, ($sp)        # saves the value of $a1 in the stack");
+
+        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
+        emit("sw $a0, ($sp)        # saves the value of $a0 in the stack");
+
+        n.e.accept(this);*/
+    }
+
+    // Exp e;
+    // Type t;
+    // Identifier i;
+    // FormalList fl;
+    // VarDecList sl;
+    // StatementList sl;
+    public void visit(MethodDecl n)
+    {
+        System.out.println("I AM CALLED");
+        int additionalValue = (n.fl.size()* 4) + 24; //Calculating the additional space for local variable + the bar minimum for a stack frame
+        emit("subu $sp, $sp, " + additionalValue + "    # new stack frame has a value of " + additionalValue+ " bytes");
+        emit("sw $fp, 4($sp)       # save caller's frame pointer");
+        emit("sw $ra, 0($sp)       # save return address");
+    }
+
+    // Identifier i;
+    // MethodList fl;
+    // VarDecList vl;
+    public void visit(ClassDeclSimple n)
+    {
+        ramClass = n.i.toString();
+    }
+ /*   //@TODO MAYBE THIS CODE NEED REWORK FOR (add $fp, $fp, $v0)
+    // String s;
+    public void visit(Identifier n)
+    {
+        System.out.println("Identifier: " + n.toString());
+        System.out.println("Identifier String: " + n.s);
+
+        //n.accept(this);  // Gets the Identifier's value from the symbol table and stores in $v0
+
+        emit("add  $fp, $v0, $fp        # calculate the address of the identifier by adding it to the frame pointer");
+
+    }
+
+    //@TODO MAYBE THIS CODE NEED REWORK FOR (add $fp, $fp, $v0)
+    // String s;
+    public void visit(IdentifierExp n)
+    {
+        n.accept(this);  // Gets the Identifier's value from the symbol table and stores in $v0
+
+        emit("add  $fp, $v0, $fp        # calculate the address of the identifier by adding it to the frame pointer");
+        emit("lw  $v0, ($fp)            # load the value of $fp into $v0");
+
+    }
+
+    // Exp e;
+    // Identifier i;
+    public void visit(Assign n)
+    {
+        n.e.accept(this); // Compute the right hand side expression and stores the value in $v0
+
+        emit("add  $sp, $sp ,4     # shift the stack one block to the right (PUSH)");
+        emit("sw $v0, ($sp)        # saves the value of $v0 in the stack");
+
+        n.i.accept(this); // Compute the identifier and stores the value in $v0
+
+
+        emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
+        emit("sub  $sp, $sp ,4     # shift the stack one block to the left (POP)");
+
+        emit("sw $v1 ($v0)     # saves the value of the expression into the identifier");
+    }*/
 }
