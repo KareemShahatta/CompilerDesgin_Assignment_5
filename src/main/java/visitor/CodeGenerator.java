@@ -293,6 +293,8 @@ public class CodeGenerator extends DepthFirstVisitor {
             emit("sw $a" + args + ", ($sp)        # saves the value of $a" + args + " in the stack");
             args--;
         }
+
+        emit("jal " + n.i.toString());
     }
 
     // Exp e;
@@ -303,10 +305,27 @@ public class CodeGenerator extends DepthFirstVisitor {
     // StatementList sl;
     public void visit(MethodDecl n)
     {
-        int additionalValue = (n.fl.size()* 4) + 24; //Calculating the additional space for local variable + the bar minimum for a stack frame
+        String method = n.i.toString();
+        int additionalValue = (n.fl.size()* 4) + 24;
+
+        emitLabel(method);
+
+        emitComment("begin prologue -- " + method);
         emit("subu $sp, $sp, " + additionalValue + "    # new stack frame has a value of " + additionalValue+ " bytes");
         emit("sw $fp, 4($sp)       # save caller's frame pointer");
         emit("sw $ra, 0($sp)       # save return address");
+//        emit("addi $fp, $sp, 20    # set up main's frame pointer");
+        emitComment("end prologue -- " + method);
+
+        n.e.accept(this); //return int?
+
+        emitComment("begin epilogue -- " + method);
+        emit("lw $ra, 0($sp)       # restore return address");
+        emit("lw $fp, 4($sp)       # restore caller's frame pointer");
+        emit("addi $sp, $sp, " + additionalValue + "    # pop the stack");
+        emitComment("end epilogue -- " + method);
+
+        emit("jr $ra");
     }
 
     // Identifier i;
