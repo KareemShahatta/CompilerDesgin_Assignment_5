@@ -5,9 +5,6 @@ import java.util.Enumeration;
 
 
 public class CodeGenerator extends DepthFirstVisitor {
-
-    //@TODO I ADDED THIS FIELD
-    private String ramClass;
     private int labelCounter = 0;
     private java.io.PrintStream out;
     private static int nextLabelNum = 0;
@@ -287,21 +284,15 @@ public class CodeGenerator extends DepthFirstVisitor {
     // ExpList el;
     public void visit(Call n)
     {
-       /* emitComment("Preparing to call method " +n.i.toString());
+        emitComment("Preparing to call method " +n.i.toString());
 
-        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
-        emit("sw $a3, ($sp)        # saves the value of $a3 in the stack");
-
-        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
-        emit("sw $a2, ($sp)        # saves the value of $a2 in the stack");
-
-        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
-        emit("sw $a1, ($sp)        # saves the value of $a1 in the stack");
-
-        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
-        emit("sw $a0, ($sp)        # saves the value of $a0 in the stack");
-
-        n.e.accept(this);*/
+        int args = 3;
+        while(args >= 0)
+        {
+            emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
+            emit("sw $a" + args + ", ($sp)        # saves the value of $a" + args + " in the stack");
+            args--;
+        }
     }
 
     // Exp e;
@@ -312,7 +303,6 @@ public class CodeGenerator extends DepthFirstVisitor {
     // StatementList sl;
     public void visit(MethodDecl n)
     {
-        System.out.println("I AM CALLED");
         int additionalValue = (n.fl.size()* 4) + 24; //Calculating the additional space for local variable + the bar minimum for a stack frame
         emit("subu $sp, $sp, " + additionalValue + "    # new stack frame has a value of " + additionalValue+ " bytes");
         emit("sw $fp, 4($sp)       # save caller's frame pointer");
@@ -324,10 +314,16 @@ public class CodeGenerator extends DepthFirstVisitor {
     // VarDecList vl;
     public void visit(ClassDeclSimple n)
     {
-        ramClass = n.i.toString();
+        for(int i = 0 ; i < n.ml.size() ; i++)
+        {
+            n.ml.elementAt(i).accept(this);
+        }
+
+        TypeCheckVisitor.currClass = symTable.getClass(n.i.toString());
     }
- /*   //@TODO MAYBE THIS CODE NEED REWORK FOR (add $fp, $fp, $v0)
-    // String s;
+
+    /*//@TODO MAYBE THIS CODE NEED REWORK FOR (add $fp, $fp, $v0)
+    String s;
     public void visit(Identifier n)
     {
         System.out.println("Identifier: " + n.toString());
