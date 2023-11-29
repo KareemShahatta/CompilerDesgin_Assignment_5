@@ -121,12 +121,12 @@ public class CodeGenerator extends DepthFirstVisitor {
     public void visit(Plus n)
     {
         n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
-        emit("sw $v0, ($sp)        # saves the value of $v0 in the stack");
+        emit("sub  $fp, $fp ,4     # add 1 word to the stack (PUSH)");
+        emit("sw $v0, ($fp)        # saves the value of $v0 in the stack");
 
         n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
-        emit("add  $sp, $sp ,4     # remove 1 word to the stack (POP)");
+        emit("lw $v1, ($fp)        # loads the value of $v1 from the stack");
+        emit("add  $fp, $fp ,4     # remove 1 word to the stack (POP)");
         emit("add $v0 $v1, $v0     # adds the value of $v0 and $v1 and saves it in $v0");
     }
 
@@ -135,12 +135,12 @@ public class CodeGenerator extends DepthFirstVisitor {
     public void visit(Minus n)
     {
         n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
-        emit("sw $v0, ($sp)        # saves the value of $v0 in the stack");
+        emit("sub  $fp, $fp ,4     # add 1 word to the stack (PUSH)");
+        emit("sw $v0, ($fp)        # saves the value of $v0 in the stack");
 
         n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
-        emit("add  $sp, $sp ,4     # remove 1 word to the stack (POP)");
+        emit("lw $v1, ($fp)        # loads the value of $v1 from the stack");
+        emit("add  $fp, $fp ,4     # remove 1 word to the stack (POP)");
         emit("sub $v0 $v1, $v0     # subtract the value of $v0 and $v1 and saves it in $v0");
     }
 
@@ -306,7 +306,6 @@ public class CodeGenerator extends DepthFirstVisitor {
     // StatementList sl;
     public void visit(MethodDecl n)
     {
-        System.out.println("Current method switched to => " + n.i);
         TypeCheckVisitor.currMethod = symTable.getMethod(n.i.toString() , TypeCheckVisitor.currClass.getId());
 
         String method = n.i.toString();
@@ -341,7 +340,6 @@ public class CodeGenerator extends DepthFirstVisitor {
 
     public void visit(ClassDeclSimple n)
     {
-        System.out.println("Current Class switched to => " + n.i);
         TypeCheckVisitor.currClass = symTable.getClass(n.i.toString());
 
         for(int i = 0 ; i < n.ml.size() ; i++)
@@ -395,6 +393,6 @@ public class CodeGenerator extends DepthFirstVisitor {
         n.i.accept(this);
 
         emit("lw $v1, ($fp)        # loads the value of $v1 from the stack");
-        emit("move  $v1, $v0       # Saves value of $v0???");
+        emit("move  $v0, $v1       # Saves value of $v1 to $v0");
     }
 }
