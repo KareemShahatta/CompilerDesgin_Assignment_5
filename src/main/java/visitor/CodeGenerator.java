@@ -149,12 +149,12 @@ public class CodeGenerator extends DepthFirstVisitor {
     public void visit(Times n)
     {
         n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("add  $sp, $sp ,4     # shift the stack one block to the right (PUSH)");
-        emit("sw $v0, ($sp)        # saves the value of $v0 in the stack");
+        emit("sub  $fp, $fp ,4     # add 1 word to the stack (PUSH)");
+        emit("sw $v0, ($fp)        # saves the value of $v0 in the stack");
 
         n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
-        emit("sub  $sp, $sp ,4     # shift the stack one block to the left (POP)");
+        emit("lw $v1, ($fp)        # loads the value of $v1 from the stack");
+        emit("add  $fp, $fp ,4     # remove 1 word to the stack (POP)");
         emit("mul $v0 $v1, $v0     # multiply the value of $v0 and $v1 and saves it in $v0");
     }
 
@@ -284,6 +284,12 @@ public class CodeGenerator extends DepthFirstVisitor {
     // ExpList el;
     public void visit(Call n)
     {
+        //@ FIXME: this code might be needed in the future so heads up!
+        /*for(int i = 0 ; i < n.el.size() ; i ++)
+        {
+            n.el.elementAt(i).accept(this);
+        }*/
+
         emitComment("Preparing to call method " +n.i.toString());
 
         int args = 3;
@@ -295,6 +301,8 @@ public class CodeGenerator extends DepthFirstVisitor {
         }
 
         emit("jal " + n.i.toString());
+
+        n.e.accept(this);
     }
 
     // Exp e;
@@ -305,6 +313,9 @@ public class CodeGenerator extends DepthFirstVisitor {
     // StatementList sl;
     public void visit(MethodDecl n)
     {
+        System.out.println("Current method switched to => " + n.i);
+        TypeCheckVisitor.currMethod = symTable.getMethod(n.i.toString() , TypeCheckVisitor.currClass.getId());
+
         String method = n.i.toString();
         int additionalValue = (n.fl.size()* 4) + 24;
 
@@ -314,11 +325,18 @@ public class CodeGenerator extends DepthFirstVisitor {
         emit("subu $sp, $sp, " + additionalValue + "    # new stack frame has a value of " + additionalValue+ " bytes");
         emit("sw $fp, 4($sp)       # save caller's frame pointer");
         emit("sw $ra, 0($sp)       # save return address");
-//        emit("addi $fp, $sp, 20    # set up main's frame pointer");
+        emit("addi $fp, $sp, " + (additionalValue - 4) + "    # set up main's frame pointer");
         emitComment("end prologue -- " + method);
 
-        n.e.accept(this); //return int?
+        for(int i = 0 ; i < n.sl.size() ; i++)
+        {
+            n.sl.elementAt(i).accept(this);
+        }
 
+        //@TODO Uncover because this is the return
+        //n.e.accept(this);
+
+        //@ FIXME: Possibly popping off the args in the stack?!
         emitComment("begin epilogue -- " + method);
         emit("lw $ra, 0($sp)       # restore return address");
         emit("lw $fp, 4($sp)       # restore caller's frame pointer");
@@ -328,58 +346,62 @@ public class CodeGenerator extends DepthFirstVisitor {
         emit("jr $ra");
     }
 
-    // Identifier i;
-    // MethodList fl;
-    // VarDecList vl;
     public void visit(ClassDeclSimple n)
     {
+        System.out.println("Current Class switched to => " + n.i);
+        TypeCheckVisitor.currClass = symTable.getClass(n.i.toString());
+
         for(int i = 0 ; i < n.ml.size() ; i++)
         {
             n.ml.elementAt(i).accept(this);
         }
-
-        TypeCheckVisitor.currClass = symTable.getClass(n.i.toString());
     }
 
-    /*//@TODO MAYBE THIS CODE NEED REWORK FOR (add $fp, $fp, $v0)
-    String s;
+    // String s;
     public void visit(Identifier n)
     {
-        System.out.println("Identifier: " + n.toString());
-        System.out.println("Identifier String: " + n.s);
+        int stack_Offset;
+        if(TypeCheckVisitor.currMethod.containsVar(n.s))
+        {
+            stack_Offset = TypeCheckVisitor.currMethod.getVar(n.s).getOffset() * 4;
+        }
+        else
+        {
+            stack_Offset = TypeCheckVisitor.currMethod.getParam(n.s).getOffset() * 4;
+        }
 
-        //n.accept(this);  // Gets the Identifier's value from the symbol table and stores in $v0
-
-        emit("add  $fp, $v0, $fp        # calculate the address of the identifier by adding it to the frame pointer");
-
+        emit("addiu $v0 $fp, " + stack_Offset + "    # calculates and store the variable memory in $v0");
     }
 
-    //@TODO MAYBE THIS CODE NEED REWORK FOR (add $fp, $fp, $v0)
+
     // String s;
     public void visit(IdentifierExp n)
     {
-        n.accept(this);  // Gets the Identifier's value from the symbol table and stores in $v0
-
-        emit("add  $fp, $v0, $fp        # calculate the address of the identifier by adding it to the frame pointer");
-        emit("lw  $v0, ($fp)            # load the value of $fp into $v0");
-
+        int stack_Offset;
+        if(TypeCheckVisitor.currMethod.containsVar(n.s))
+        {
+            stack_Offset = TypeCheckVisitor.currMethod.getVar(n.s).getOffset() * 4;
+        }
+        else
+        {
+            stack_Offset = TypeCheckVisitor.currMethod.getParam(n.s).getOffset() * 4;
+        }
+        emit("addiu $v0 $fp, " + stack_Offset + "    # calculates and store the variable memory in $v0 using frame pointer");
+        emit("lw $v0 ($v0),        # loads the value of the variable in $v0.");
     }
 
-    // Exp e;
+
     // Identifier i;
+    // Exp e;
     public void visit(Assign n)
     {
-        n.e.accept(this); // Compute the right hand side expression and stores the value in $v0
+        n.e.accept(this);
+        emit("sub  $fp, $fp ,4     # add 1 word to the stack (PUSH)");
+        emit("sw $v0 ($fp)         # saves the value of the RHS from $v0 to the stack");
 
-        emit("add  $sp, $sp ,4     # shift the stack one block to the right (PUSH)");
-        emit("sw $v0, ($sp)        # saves the value of $v0 in the stack");
+        n.i.accept(this);
 
-        n.i.accept(this); // Compute the identifier and stores the value in $v0
-
-
-        emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
-        emit("sub  $sp, $sp ,4     # shift the stack one block to the left (POP)");
-
-        emit("sw $v1 ($v0)     # saves the value of the expression into the identifier");
-    }*/
+        emit("lw $v1, ($fp)        # loads the value of $v1 from the stack");
+        emit("move  $v1, $v0       # Saves value of $v0???");
+    }
 }
