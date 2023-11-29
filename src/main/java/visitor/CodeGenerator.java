@@ -284,20 +284,13 @@ public class CodeGenerator extends DepthFirstVisitor {
     // ExpList el;
     public void visit(Call n)
     {
-        //@ FIXME: this code might be needed in the future so heads up!
-        /*for(int i = 0 ; i < n.el.size() ; i ++)
-        {
-            n.el.elementAt(i).accept(this);
-        }*/
-
         emitComment("Preparing to call method " +n.i.toString());
 
-        int args = 3;
-        while(args >= 0)
+        for(int i = 0 ; i < n.el.size() ; i ++)
         {
+            n.el.elementAt(i).accept(this);
             emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
-            emit("sw $a" + args + ", ($sp)        # saves the value of $a" + args + " in the stack");
-            args--;
+            emit("sw $v0, ($sp)        # saves the value of  in the stack");
         }
 
         emit("jal " + n.i.toString());
