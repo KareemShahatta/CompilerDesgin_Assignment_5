@@ -290,7 +290,7 @@ public class CodeGenerator extends DepthFirstVisitor {
         {
             n.el.elementAt(i).accept(this);
             emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
-            emit("sw $v0, ($sp)        # saves the value of  in the stack");
+            emit("sw $v0, ($sp)        # saves the value of an argument in the stack");
         }
 
         emit("jal " + n.i.toString());
@@ -325,8 +325,7 @@ public class CodeGenerator extends DepthFirstVisitor {
             n.sl.elementAt(i).accept(this);
         }
 
-        //@TODO Uncover because this is the return
-        //n.e.accept(this);
+        n.e.accept(this);
 
         //@ FIXME: Possibly popping off the args in the stack?!
         emitComment("begin epilogue -- " + method);
@@ -393,6 +392,6 @@ public class CodeGenerator extends DepthFirstVisitor {
         n.i.accept(this);
 
         emit("lw $v1, ($fp)        # loads the value of $v1 from the stack");
-        emit("move  $v0, $v1       # Saves value of $v1 to $v0");
+        emit("sw  $v1, ($v0)       # Saves value of $v1 in address of $v0");
     }
 }
