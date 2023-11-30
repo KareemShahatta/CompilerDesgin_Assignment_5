@@ -354,10 +354,12 @@ public class CodeGenerator extends DepthFirstVisitor {
         if(TypeCheckVisitor.currMethod.containsVar(n.s))
         {
             stack_Offset = TypeCheckVisitor.currMethod.getVar(n.s).getOffset() * 4;
+            System.out.println("var: " + TypeCheckVisitor.currMethod.getVar(n.s).getId() + " offset: " + TypeCheckVisitor.currMethod.getVar(n.s).getOffset());
         }
         else
         {
             stack_Offset = TypeCheckVisitor.currMethod.getParam(n.s).getOffset() * 4;
+            System.out.println("pram: " + TypeCheckVisitor.currMethod.getParam(n.s).getId() + " offset: " + TypeCheckVisitor.currMethod.getParam(n.s).getOffset());
         }
 
         emit("addiu $v0 $fp, " + stack_Offset + "    # calculates and store the variable memory in $v0");
@@ -371,10 +373,12 @@ public class CodeGenerator extends DepthFirstVisitor {
         if(TypeCheckVisitor.currMethod.containsVar(n.s))
         {
             stack_Offset = TypeCheckVisitor.currMethod.getVar(n.s).getOffset() * 4;
+            System.out.println("var: " + TypeCheckVisitor.currMethod.getVar(n.s).getId() + " offset: " + TypeCheckVisitor.currMethod.getVar(n.s).getOffset());
         }
         else
         {
             stack_Offset = TypeCheckVisitor.currMethod.getParam(n.s).getOffset() * 4;
+            System.out.println("pram: " + TypeCheckVisitor.currMethod.getParam(n.s).getId() + " offset: " + TypeCheckVisitor.currMethod.getParam(n.s).getOffset());
         }
         emit("addiu $v0 $fp, " + stack_Offset + "    # calculates and store the variable memory in $v0 using frame pointer");
         emit("lw $v0 ($v0),        # loads the value of the variable in $v0.");
