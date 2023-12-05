@@ -66,15 +66,15 @@ public class CodeGenerator extends DepthFirstVisitor {
         emit("sw $fp, 4($sp)       # save caller's frame pointer");
         emit("sw $ra, 0($sp)       # save return address");
         
-        emit("addi $fp, $sp, 20    # set up main's frame pointer");       
+        emit("addi $fp, $sp, 20    # set up main's frame pointer");
         emitComment("end prologue -- main");
         
         n.s.accept(this);
-        
+
         emitComment("begin epilogue -- main");
         emit("lw $ra, 0($sp)       # restore return address");
         emit("lw $fp, 4($sp)       # restore caller's frame pointer");
-        emit("addi $sp, $sp, 24    # pop the stack"); 
+        emit("addi $sp, $sp, 24    # pop the stack");
         emitComment("end epilogue -- main");
         
         /*
@@ -91,14 +91,14 @@ public class CodeGenerator extends DepthFirstVisitor {
 
     // int i;
     public void visit(IntegerLiteral n) {
-        emit("li $v0, "+n.i+"            # load literal "+n.i+" into $v0");
+        emit("li $v0, "+n.i+"            # load literal "+n.i+" into $v0 (Integer)");
     }
 
     // Exp e;
     public void visit(Print n)
     {
         n.e.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("move $a0, $v0        # move value from $v0 to $a0");
+        emit("move $a0, $v0        # move value from $v0 to $a0 (Print Number)");
         emit("li $v0, 1            # load the literal 1 into $v0");
         emit("syscall");
     }
@@ -107,11 +107,11 @@ public class CodeGenerator extends DepthFirstVisitor {
     public void visit(Println n)
     {
         n.e.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("move $a0, $v0        # move value from $v0 to $a0");
+        emit("move $a0, $v0        # move value from $v0 to $a0 (Print Number)");
         emit("li $v0, 1            # load the literal 1 into $v0");
         emit("syscall");
 
-        emit("li $v0, 4            # set type of print to be string");
+        emit("li $v0, 4            # set type of print to be string (Print New line)");
         emit("la $a0, space        # load the space label onto first argument to print");
         emit("syscall");
     }
@@ -121,13 +121,14 @@ public class CodeGenerator extends DepthFirstVisitor {
     public void visit(Plus n)
     {
         n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("sub  $fp, $fp ,4     # add 1 word to the stack (PUSH)");
-        emit("sw $v0, ($fp)        # saves the value of $v0 in the stack");
+        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
+        emit("sw $v0, ($sp)        # saves the value of $v0 in the stack");
 
         n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("lw $v1, ($fp)        # loads the value of $v1 from the stack");
-        emit("add  $fp, $fp ,4     # remove 1 word to the stack (POP)");
-        emit("add $v0 $v1, $v0     # adds the value of $v0 and $v1 and saves it in $v0");
+        emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
+        emit("add  $sp, $sp ,4     # remove 1 word to the stack (POP)");
+
+        emit("add $v0 $v1, $v0     # adds the value of $v0 and $v1 and saves it in $v0 (PLUS)");
     }
 
     // Exp e1;
@@ -135,13 +136,14 @@ public class CodeGenerator extends DepthFirstVisitor {
     public void visit(Minus n)
     {
         n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("sub  $fp, $fp ,4     # add 1 word to the stack (PUSH)");
-        emit("sw $v0, ($fp)        # saves the value of $v0 in the stack");
+        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
+        emit("sw $v0, ($sp)        # saves the value of $v0 in the stack");
 
         n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("lw $v1, ($fp)        # loads the value of $v1 from the stack");
-        emit("add  $fp, $fp ,4     # remove 1 word to the stack (POP)");
-        emit("sub $v0 $v1, $v0     # subtract the value of $v0 and $v1 and saves it in $v0");
+        emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
+        emit("add  $sp, $sp ,4     # remove 1 word to the stack (POP)");
+
+        emit("sub $v0 $v1, $v0     # subtract the value of $v0 and $v1 and saves it in $v0 (MINUS)");
     }
 
     // Exp e1;
@@ -149,23 +151,24 @@ public class CodeGenerator extends DepthFirstVisitor {
     public void visit(Times n)
     {
         n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("sub  $fp, $fp ,4     # add 1 word to the stack (PUSH)");
-        emit("sw $v0, ($fp)        # saves the value of $v0 in the stack");
+        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
+        emit("sw $v0, ($sp)        # saves the value of $v0 in the stack");
 
         n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("lw $v1, ($fp)        # loads the value of $v1 from the stack");
-        emit("add  $fp, $fp ,4     # remove 1 word to the stack (POP)");
-        emit("mul $v0 $v1, $v0     # multiply the value of $v0 and $v1 and saves it in $v0");
+        emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
+        emit("add  $sp, $sp ,4     # remove 1 word to the stack (POP)");
+
+        emit("mul $v0 $v1, $v0     # multiply the value of $v0 and $v1 and saves it in $v0 (TIMES)");
     }
 
     // true 1;
     public void visit(True n) {
-        emit("li $v0, 1            # load true value 1 into $v0");
+        emit("li $v0, 1            # load TRUE into $v0");
     }
 
     // false 0;
     public void visit(False n) {
-        emit("li $v0, 0            # load false value 0 into $v0");
+        emit("li $v0, 0            # load FALSE into $v0");
     }
 
     // Exp e;
@@ -222,14 +225,13 @@ public class CodeGenerator extends DepthFirstVisitor {
     {
         int value = ++labelCounter;
 
-        // @FIXME: THOSE GOT CHANGED TO BE FP instead of SP
         n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("sub  $fp, $fp ,4     # add 1 word to the stack (PUSH)");
-        emit("sw $v0, ($fp)         # saves the value of $v0 in the stack");
+        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
+        emit("sw $v0, ($sp)         # saves the value of $v0 in the stack");
 
+        emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
+        emit("add  $sp, $sp ,4     # remove 1 word to the stack (POP)");
         n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("lw $v1, ($fp)        # loads the value of $v1 from the stack");
-        emit("add  $fp, $fp ,4     # remove 1 word to the stack (POP)");
 
         emit("blt $v1 $v0 LessThan_True_" + value + "   #Check if $v1 is less than $v0 (e1 < e2)");
         emit("li $v0, 0            # loads the value of $v0 to be 0 (false)");
@@ -249,11 +251,11 @@ public class CodeGenerator extends DepthFirstVisitor {
 
         n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
         emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
-        emit("sw $v0, ($sp)        # saves the value of $v0 in the stack");
+        emit("sw $v0, ($sp)         # saves the value of $v0 in the stack");
 
-        n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
         emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
         emit("add  $sp, $sp ,4     # remove 1 word to the stack (POP)");
+        n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
 
         emit("beq $v1 $v0 Equals_True_" + value + "   #check if $v1 is equal to $v0 (e1 = e2)");
         emit("li $v0, 0            # loads the value of $v0 to be 0 (false)");
@@ -285,9 +287,12 @@ public class CodeGenerator extends DepthFirstVisitor {
     // ExpList el;
     public void visit(Call n)
     {
+
         emitComment("Preparing to call method " +n.i.toString());
 
-        for(int i = 0 ; i < n.el.size() ; i ++)
+        /*for(int i = 0 ; i < n.el.size() ; i ++)
+        {*/
+        for(int i = n.el.size() - 1 ; i >= 0 ; i --)
         {
             n.el.elementAt(i).accept(this);
             emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
@@ -314,6 +319,16 @@ public class CodeGenerator extends DepthFirstVisitor {
 
         String method = n.i.toString();
         int additionalValue = (n.fl.size()* 4) + 24;
+
+        //@FIXME remove if it does not work
+        for(int i = 0 ; i < n.fl.size() ; i++)
+        {
+            TypeCheckVisitor.currMethod.getParam(n.fl.elementAt(i).i.toString()).addOffset();
+        }
+        for(int i = 0 ; i < n.vl.size() ; i++)
+        {
+            TypeCheckVisitor.currMethod.getVar(n.vl.elementAt(i).i.toString()).addOffset();
+        }
 
         emitLabel(method);
 
@@ -389,13 +404,13 @@ public class CodeGenerator extends DepthFirstVisitor {
     public void visit(Assign n)
     {
         n.e.accept(this);
-        emit("sub  $fp, $fp ,4     # add 1 word to the stack (PUSH)");
-        emit("sw $v0 ($fp)         # saves the value of the RHS from $v0 to the stack");
+        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
+        emit("sw $v0 ($sp)         # saves the value of the RHS from $v0 to the stack");
 
         n.i.accept(this);
 
-        emit("lw $v1, ($fp)        # loads the value of $v1 from the stack");
-        //emit("add  $fp, $fp ,4     # remove 1 word to the stack (POP)");
+        emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
+        emit("add  $sp, $sp ,4     # remove 1 word to the stack (POP)");
         emit("sw  $v1, ($v0)       # Saves value of $v1 in address of $v0");
     }
 
