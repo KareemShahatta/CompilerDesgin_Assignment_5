@@ -222,13 +222,14 @@ public class CodeGenerator extends DepthFirstVisitor {
     {
         int value = ++labelCounter;
 
+        // @FIXME: THOSE GOT CHANGED TO BE FP instead of SP
         n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
-        emit("sw $v0, ($sp)         # saves the value of $v0 in the stack");
+        emit("sub  $fp, $fp ,4     # add 1 word to the stack (PUSH)");
+        emit("sw $v0, ($fp)         # saves the value of $v0 in the stack");
 
         n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
-        emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
-        emit("add  $sp, $sp ,4     # remove 1 word to the stack (POP)");
+        emit("lw $v1, ($fp)        # loads the value of $v1 from the stack");
+        emit("add  $fp, $fp ,4     # remove 1 word to the stack (POP)");
 
         emit("blt $v1 $v0 LessThan_True_" + value + "   #Check if $v1 is less than $v0 (e1 < e2)");
         emit("li $v0, 0            # loads the value of $v0 to be 0 (false)");
@@ -295,7 +296,10 @@ public class CodeGenerator extends DepthFirstVisitor {
 
         emit("jal " + n.i.toString());
 
-        n.e.accept(this);
+        for(int i = 0 ; i < n.el.size() ; i ++)
+        {
+            emit("add  $sp, $sp ,4     # add 1 word to the stack (POP)");
+        }
     }
 
     // Exp e;
@@ -327,7 +331,6 @@ public class CodeGenerator extends DepthFirstVisitor {
 
         n.e.accept(this);
 
-        //@ FIXME: Possibly popping off the args in the stack?!
         emitComment("begin epilogue -- " + method);
         emit("lw $ra, 0($sp)       # restore return address");
         emit("lw $fp, 4($sp)       # restore caller's frame pointer");
@@ -354,15 +357,13 @@ public class CodeGenerator extends DepthFirstVisitor {
         if(TypeCheckVisitor.currMethod.containsVar(n.s))
         {
             stack_Offset = TypeCheckVisitor.currMethod.getVar(n.s).getOffset() * 4;
-            System.out.println("var: " + TypeCheckVisitor.currMethod.getVar(n.s).getId() + " offset: " + TypeCheckVisitor.currMethod.getVar(n.s).getOffset());
         }
         else
         {
             stack_Offset = TypeCheckVisitor.currMethod.getParam(n.s).getOffset() * 4;
-            System.out.println("pram: " + TypeCheckVisitor.currMethod.getParam(n.s).getId() + " offset: " + TypeCheckVisitor.currMethod.getParam(n.s).getOffset());
         }
 
-        emit("addiu $v0 $fp, " + stack_Offset + "    # calculates and store the variable memory in $v0");
+        emit("addiu $v0 $fp, " + stack_Offset + "    # calculates and store the variable memory in $v0 using OFFSET " + stack_Offset);
     }
 
 
@@ -373,14 +374,12 @@ public class CodeGenerator extends DepthFirstVisitor {
         if(TypeCheckVisitor.currMethod.containsVar(n.s))
         {
             stack_Offset = TypeCheckVisitor.currMethod.getVar(n.s).getOffset() * 4;
-            System.out.println("var: " + TypeCheckVisitor.currMethod.getVar(n.s).getId() + " offset: " + TypeCheckVisitor.currMethod.getVar(n.s).getOffset());
         }
         else
         {
             stack_Offset = TypeCheckVisitor.currMethod.getParam(n.s).getOffset() * 4;
-            System.out.println("pram: " + TypeCheckVisitor.currMethod.getParam(n.s).getId() + " offset: " + TypeCheckVisitor.currMethod.getParam(n.s).getOffset());
         }
-        emit("addiu $v0 $fp, " + stack_Offset + "    # calculates and store the variable memory in $v0 using frame pointer");
+        emit("addiu $v0 $fp, " + stack_Offset + "    # calculates and store the variable memory in $v0 using frame pointer and OFFSET " + stack_Offset);
         emit("lw $v0 ($v0),        # loads the value of the variable in $v0.");
     }
 
@@ -396,6 +395,26 @@ public class CodeGenerator extends DepthFirstVisitor {
         n.i.accept(this);
 
         emit("lw $v1, ($fp)        # loads the value of $v1 from the stack");
+        //emit("add  $fp, $fp ,4     # remove 1 word to the stack (POP)");
         emit("sw  $v1, ($v0)       # Saves value of $v1 in address of $v0");
+    }
+
+    // Exp e;
+    // Statement s;
+    public void visit(While n)
+    {
+        int value = ++labelCounter;
+
+        emitLabel("While_" + value);
+
+        n.e.accept(this);
+
+        emit("blez $v0 While_Done_" + value + "  # Check if $v0 is false then execute done block"); //(BLEZ) Branch Less or Equal Zero
+
+        n.s.accept(this);
+
+        emit("jal While_" + value + "           # Jumps to loop body");
+
+        emitLabel("While_Done_" + value);
     }
 }
