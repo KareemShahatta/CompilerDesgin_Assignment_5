@@ -150,10 +150,12 @@ public class CodeGenerator extends DepthFirstVisitor {
     // Exp e2;
     public void visit(Times n)
     {
+        //System.out.println(n.e1.toString());
         n.e1.accept(this); //Call IntegerLiteral and stores the value in $v0
         emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
         emit("sw $v0, ($sp)        # saves the value of $v0 in the stack");
 
+        //System.out.println(n.e2.toString());
         n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
         emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
         emit("add  $sp, $sp ,4     # remove 1 word to the stack (POP)");
@@ -234,12 +236,11 @@ public class CodeGenerator extends DepthFirstVisitor {
         n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
 
         emit("blt $v1 $v0 LessThan_True_" + value + "   #Check if $v1 is less than $v0 (e1 < e2)");
-        emit("li $v0, 0            # loads the value of $v0 to be 0 (false)");
+        emit("li $v0, 0            # load FALSE into $v0");
         emit("jal LessThan_Done_" + value + "  # Jumps to label LessThan_Done");
 
         emitLabel("LessThan_True_"  + value);
-        emit("li $v0, 1            # loads the value of $v0 to be 1 (true)");
-
+        emit("li $v0, 1            # load TRUE into $v0");
         emitLabel("LessThan_Done_" + value);
     }
 
@@ -258,11 +259,11 @@ public class CodeGenerator extends DepthFirstVisitor {
         n.e2.accept(this); //Call IntegerLiteral and stores the value in $v0
 
         emit("beq $v1 $v0 Equals_True_" + value + "   #check if $v1 is equal to $v0 (e1 = e2)");
-        emit("li $v0, 0            # loads the value of $v0 to be 0 (false)");
+        emit("li $v0, 0            # load FALSE into $v0");
         emit("jal Equals_Done_" + value + "           # jumps to label Equals_Done");
 
         emitLabel("Equals_True_"  + value);
-        emit("li $v0, 1            # loads the value of $v0 to be 1 (true)");
+        emit("li $v0, 1            # load TRUE into $v0");
 
         emitLabel("Equals_Done_" + value);
     }
@@ -273,11 +274,11 @@ public class CodeGenerator extends DepthFirstVisitor {
         int value = ++labelCounter;
         n.e.accept(this); //Call IntegerLiteral and stores the value in $v0
         emit("blez $v0 Not_Switch_True_" + value + "   #check the value of $v1 to switch it correctly");
-        emit("li $v0, 0            # loads the value of $v0 to be 0 (false)");
+        emit("li $v0, 0            # load FALSE into $v0");
         emit("jal Not_SwitchDone_" + value + "           # jumps to label Not_SwitchDone");
 
         emitLabel("Not_Switch_True_"  + value);
-        emit("li $v0, 1            # loads the value of $v0 to be 1 (true)");
+        emit("li $v0, 1            # load TRUE into $v0");
 
         emitLabel("Not_SwitchDone_" + value);
     }
@@ -287,23 +288,19 @@ public class CodeGenerator extends DepthFirstVisitor {
     // ExpList el;
     public void visit(Call n)
     {
-
         emitComment("Preparing to call method " +n.i.toString());
 
-        /*for(int i = 0 ; i < n.el.size() ; i ++)
-        {*/
         for(int i = n.el.size() - 1 ; i >= 0 ; i --)
         {
             n.el.elementAt(i).accept(this);
-            emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
+            emit("sub  $sp, $sp ,4     # add 1 argument to the stack (PUSH)");
             emit("sw $v0, ($sp)        # saves the value of an argument in the stack");
         }
 
         emit("jal " + n.i.toString());
-
         for(int i = 0 ; i < n.el.size() ; i ++)
         {
-            emit("add  $sp, $sp ,4     # add 1 word to the stack (POP)");
+            emit("add  $sp, $sp ,4     # remove 1 argument to the stack (POP)");
         }
     }
 
@@ -315,19 +312,21 @@ public class CodeGenerator extends DepthFirstVisitor {
     // StatementList sl;
     public void visit(MethodDecl n)
     {
+        RamVariable.offset_counter_var = 0;
+        RamVariable.offset_counter_pram = 0;
+
         TypeCheckVisitor.currMethod = symTable.getMethod(n.i.toString() , TypeCheckVisitor.currClass.getId());
 
         String method = n.i.toString();
         int additionalValue = (n.fl.size()* 4) + 24;
 
-        //@FIXME remove if it does not work
         for(int i = 0 ; i < n.fl.size() ; i++)
         {
-            TypeCheckVisitor.currMethod.getParam(n.fl.elementAt(i).i.toString()).addOffset();
+            TypeCheckVisitor.currMethod.getParam(n.fl.elementAt(i).i.toString()).setPramOffset();
         }
         for(int i = 0 ; i < n.vl.size() ; i++)
         {
-            TypeCheckVisitor.currMethod.getVar(n.vl.elementAt(i).i.toString()).addOffset();
+            TypeCheckVisitor.currMethod.getVar(n.vl.elementAt(i).i.toString()).setVarOffset();
         }
 
         emitLabel(method);
@@ -339,12 +338,13 @@ public class CodeGenerator extends DepthFirstVisitor {
         emit("addi $fp, $sp, " + (additionalValue - 4) + "    # set up main's frame pointer");
         emitComment("end prologue -- " + method);
 
-        for(int i = 0 ; i < n.sl.size() ; i++)
+        for(int i = 0 ; i < n.sl.size() ; i++) //If condition
         {
             n.sl.elementAt(i).accept(this);
         }
 
-        n.e.accept(this);
+        n.e.accept(this); //return expression
+
 
         emitComment("begin epilogue -- " + method);
         emit("lw $ra, 0($sp)       # restore return address");
@@ -371,14 +371,14 @@ public class CodeGenerator extends DepthFirstVisitor {
         int stack_Offset;
         if(TypeCheckVisitor.currMethod.containsVar(n.s))
         {
-            stack_Offset = TypeCheckVisitor.currMethod.getVar(n.s).getOffset() * 4;
+            stack_Offset = TypeCheckVisitor.currMethod.getVar(n.s).getOffset();
         }
         else
         {
-            stack_Offset = TypeCheckVisitor.currMethod.getParam(n.s).getOffset() * 4;
+            stack_Offset = TypeCheckVisitor.currMethod.getParam(n.s).getOffset();
         }
 
-        emit("addiu $v0 $fp, " + stack_Offset + "    # calculates and store the variable memory in $v0 using OFFSET " + stack_Offset);
+        emit("addiu $v0 $fp, " + stack_Offset + "     # (Variable :" + n.s + ") Sets up the memory location in $v0" + stack_Offset);
     }
 
 
@@ -388,13 +388,13 @@ public class CodeGenerator extends DepthFirstVisitor {
         int stack_Offset;
         if(TypeCheckVisitor.currMethod.containsVar(n.s))
         {
-            stack_Offset = TypeCheckVisitor.currMethod.getVar(n.s).getOffset() * 4;
+            stack_Offset = TypeCheckVisitor.currMethod.getVar(n.s).getOffset();
         }
         else
         {
-            stack_Offset = TypeCheckVisitor.currMethod.getParam(n.s).getOffset() * 4;
+            stack_Offset = TypeCheckVisitor.currMethod.getParam(n.s).getOffset();
         }
-        emit("addiu $v0 $fp, " + stack_Offset + "    # calculates and store the variable memory in $v0 using frame pointer and OFFSET " + stack_Offset);
+        emit("addiu $v0 $fp, " + stack_Offset + "     # (Variable :" + n.s + ") Calculate and store the variable memory in $v0 using frame pointer and OFFSET " + stack_Offset);
         emit("lw $v0 ($v0),        # loads the value of the variable in $v0.");
     }
 
@@ -407,11 +407,14 @@ public class CodeGenerator extends DepthFirstVisitor {
         emit("sub  $sp, $sp ,4     # add 1 word to the stack (PUSH)");
         emit("sw $v0 ($sp)         # saves the value of the RHS from $v0 to the stack");
 
+        //displayNewLine(n.i.toString());
+
         n.i.accept(this);
 
         emit("lw $v1, ($sp)        # loads the value of $v1 from the stack");
         emit("add  $sp, $sp ,4     # remove 1 word to the stack (POP)");
-        emit("sw  $v1, ($v0)       # Saves value of $v1 in address of $v0");
+
+        emit("sw $v1, ($v0)           # Saves value of $v1 in address of $v0");
     }
 
     // Exp e;
@@ -432,4 +435,35 @@ public class CodeGenerator extends DepthFirstVisitor {
 
         emitLabel("While_Done_" + value);
     }
+
+    // Exp e;
+    public void displayNewLine(String id)
+    {
+        emit("move $a0, $v0        # =====DISPLAYING=====");
+        emit("li $v0, 1            #        variable: " +  id);
+        emit("syscall              # ========VALUE=======");
+
+
+        emit("li $v0, 4            #");
+        emit("la $a0, space        #");
+        emit("syscall              # ====================");
+    }
+
+
+    /**
+     * LINES 84 - 91
+     * Save the value of RHS to the stack
+     * calculate the offset of identifier num_aux
+     * load the RHS into $v1 from the stack
+     * pop the stack
+     * save the RHS into the identifier of num_aux
+     * load the value of the identifier of num_aux in $v0
+     * (Basically still keep the RHS in $v0 when its suppose to have the value of num as $v1 load the value of the RHS)
+     *
+     *
+     * UPDATE!
+     * $v1 load the argument aka the value of num
+     * $v0 must hold the value of the RHS computation
+     * LINE 81 instead 4 make it 8 make it 12?
+      */
 }
