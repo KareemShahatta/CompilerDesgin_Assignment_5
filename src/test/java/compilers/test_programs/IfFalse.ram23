@@ -1,8 +1,0 @@
-class IfFalse {
-	public static void main(String[] args) {
-		if (false)
-			println(5 + 3 * 2 - 4);		// result is 7
-		else
-			println(0);
-	}
-}

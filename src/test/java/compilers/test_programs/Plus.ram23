@@ -1,5 +1,0 @@
-class Plus {
-	public static void main(String[] args) {
-		print(5 + 3 * 2 - 4);		// result is 7
-	}
-}
